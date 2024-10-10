@@ -15,10 +15,6 @@
 &nbsp;</p>
 
 
-<h3>Whatsapp Suporte: +55 (51) 9957-9150<h3>
-
-<h3>Grupo de Suporte: https://encurtador.com.br/Q9Yl5<h3>
-<br/>
 
 ## Principais Funcionalidades
 
