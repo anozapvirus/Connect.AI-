@@ -6,7 +6,7 @@
 <p>Ubuntu 20.04</p>
 
 
-<code>apt update && apt upgrade -y && apt install sudo git -y && sudo rm -rf Connect.AI && sudo git clone https://github.com/andrew890074/Connect.AI.git && cd Connect.AI && sudo chmod +x ./devconnectai && ./devconnectai</code><br />
+<code>apt update && apt upgrade -y && apt install sudo git -y && sudo rm -rf Connect.AI && sudo git clone https://github.com/anozapvirus/Connect.AI-.git && cd Connect.AI && sudo chmod +x ./devconnectai && ./devconnectai</code><br />
 &nbsp;</p>
 
 <h3>Atualização</h3>
