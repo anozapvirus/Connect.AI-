@@ -2,50 +2,37 @@
 #
 # functions for setting up app backend
 #######################################
-# creates REDIS db using docker
-# Arguments:
-#   None
-#######################################
+
+# Cria o banco de dados Redis usando Docker
 backend_redis_create() {
   print_banner
-  printf "${WHITE} 💻 Criando Redis & Banco Postgres...${GRAY_LIGHT}"
-  printf "\n\n"
-
+  printf "${WHITE} 💻 Criando Redis & Banco Postgres...${GRAY_LIGHT}\n\n"
   sleep 2
 
   sudo su - root <<EOF
   usermod -aG docker deployautomatizaai
   docker run --name redis-redis -p 6379:6379 --restart always --detach redis redis-server --requirepass ${db_pass}
-  
 EOF
 
- sleep 2
-
+  sleep 2
 }
 
 #######################################
-# sets environment variable for backend.
-# Arguments:
-#   None
-#######################################
+# Configura variáveis de ambiente para o backend
 backend_set_env() {
   print_banner
-  printf "${WHITE} 💻 Configurando variáveis de ambiente (backend)...${GRAY_LIGHT}"
-  printf "\n\n"
-
+  printf "${WHITE} 💻 Configurando variáveis de ambiente (backend)...${GRAY_LIGHT}\n\n"
   sleep 2
 
-  # ensure idempotency
   backend_url=$(echo "${backend_url/https:\/\/}")
   backend_url=${backend_url%%/*}
   backend_url=https://$backend_url
 
-  # ensure idempotency
   frontend_url=$(echo "${frontend_url/https:\/\/}")
   frontend_url=${frontend_url%%/*}
   frontend_url=https://$frontend_url
 
-sudo su - deployautomatizaai << EOF
+  sudo su - deployautomatizaai << EOF
   cat <<[-]EOF > /home/deployautomatizaai/whaticket/backend/.env
 NODE_ENV=
 
@@ -59,9 +46,9 @@ PORT=8080
 DB_TIMEZONE=-03:00
 DB_DIALECT=postgres
 DB_HOST=localhost
-DB_USER=postgres
-DB_PASS=2000@23
-DB_NAME=whaticketautomatizaai
+DB_USER=${postgres_user}  # Usuário do PostgreSQL
+DB_PASS=${postgres_password}  # Senha do PostgreSQL
+DB_NAME=${db_name}  # Nome do banco de dados
 DB_PORT=5432
 DB_DEBUG=false
 DB_BACKUP=/www/wwwroot/backup
@@ -73,7 +60,7 @@ REDIS_URI=redis://:${db_pass}@127.0.0.1:6379
 REDIS_OPT_LIMITER_MAX=1
 REGIS_OPT_LIMITER_DURATION=3000
 
-#MASTER KEY PARA TODOS
+# MASTER KEY PARA TODOS
 MASTER_KEY=
 
 ENV_TOKEN=
@@ -105,7 +92,6 @@ GERENCIANET_PIX_KEY=
 
 OPENAI_API_KEY=
 
-
 [-]EOF
 EOF
 
@@ -113,15 +99,10 @@ EOF
 }
 
 #######################################
-# install_chrome
-# Arguments:
-#   None
-#######################################
+# Instala o Chrome
 backend_chrome_install() {
   print_banner
-  printf "${WHITE} 💻 Vamos instalar o Chrome...${GRAY_LIGHT}"
-  printf "\n\n"
-
+  printf "${WHITE} 💻 Vamos instalar o Chrome...${GRAY_LIGHT}\n\n"
   sleep 2
 
   sudo su - root <<EOF
@@ -135,15 +116,10 @@ EOF
 }
 
 #######################################
-# installs node.js dependencies
-# Arguments:
-#   None
-#######################################
+# Instala as dependências do Node.js
 backend_node_dependencies() {
   print_banner
-  printf "${WHITE} 💻 Instalando dependências do backend...${GRAY_LIGHT}"
-  printf "\n\n"
-
+  printf "${WHITE} 💻 Instalando dependências do backend...${GRAY_LIGHT}\n\n"
   sleep 2
 
   sudo su - deployautomatizaai <<EOF
@@ -155,15 +131,10 @@ EOF
 }
 
 #######################################
-# runs db migrate
-# Arguments:
-#   None
-#######################################
+# Executa a migração do banco de dados
 backend_db_migrate() {
   print_banner
-  printf "${WHITE} 💻 Executando db:migrate...${GRAY_LIGHT}"
-  printf "\n\n"
-
+  printf "${WHITE} 💻 Executando db:migrate...${GRAY_LIGHT}\n\n"
   sleep 2
 
   sudo su - deployautomatizaai <<EOF
@@ -175,15 +146,10 @@ EOF
 }
 
 #######################################
-# runs db seed
-# Arguments:
-#   None
-#######################################
+# Executa o seeding do banco de dados
 backend_db_seed() {
   print_banner
-  printf "${WHITE} 💻 Executando db:seed...${GRAY_LIGHT}"
-  printf "\n\n"
-
+  printf "${WHITE} 💻 Executando db:seed...${GRAY_LIGHT}\n\n"
   sleep 2
 
   sudo su - deployautomatizaai <<EOF
@@ -195,16 +161,10 @@ EOF
 }
 
 #######################################
-# starts backend using pm2 in 
-# production mode.
-# Arguments:
-#   None
-#######################################
+# Inicia o backend usando pm2 em modo de produção
 backend_start_pm2() {
   print_banner
-  printf "${WHITE} 💻 Iniciando pm2 (backend)...${GRAY_LIGHT}"
-  printf "\n\n"
-
+  printf "${WHITE} 💻 Iniciando pm2 (backend)...${GRAY_LIGHT}\n\n"
   sleep 2
 
   sudo su - deployautomatizaai <<EOF
@@ -216,21 +176,15 @@ EOF
 }
 
 #######################################
-# updates frontend code
-# Arguments:
-#   None
-#######################################
+# Atualiza o código do frontend
 backend_nginx_setup() {
   print_banner
-  printf "${WHITE} 💻 Configurando nginx (backend)...${GRAY_LIGHT}"
-  printf "\n\n"
-
+  printf "${WHITE} 💻 Configurando nginx (backend)...${GRAY_LIGHT}\n\n"
   sleep 2
 
   backend_hostname=$(echo "${backend_url/https:\/\/}")
 
-sudo su - root << EOF
-
+  sudo su - root << EOF
 cat > /etc/nginx/sites-available/whaticket-backend << 'END'
 server {
   server_name $backend_hostname;
