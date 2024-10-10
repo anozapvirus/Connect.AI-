@@ -1,42 +1,49 @@
 #!/bin/bash
 
-# reset shell colors
+# Reset shell colors
 tput init
 
-# https://stackoverflow.com/questions/59895/how-to-get-the-source-directory-of-a-bash-script-from-within-the-script-itself
+# Determina o diretório do script
 SOURCE="${BASH_SOURCE[0]}"
-while [ -h "$SOURCE" ]; do # resolve $SOURCE until the file is no longer a symlink
+while [ -h "$SOURCE" ]; do
   PROJECT_ROOT="$( cd -P "$( dirname "$SOURCE" )" >/dev/null 2>&1 && pwd )"
   SOURCE="$(readlink "$SOURCE")"
-  [[ $SOURCE != /* ]] && SOURCE="$PROJECT_ROOT/$SOURCE" # if $SOURCE was a relative symlink, we need to resolve it relative to the path where the symlink file was located
+  [[ $SOURCE != /* ]] && SOURCE="$PROJECT_ROOT/$SOURCE"
 done
 PROJECT_ROOT="$( cd -P "$( dirname "$SOURCE" )" >/dev/null 2>&1 && pwd )"
 
-# required imports
-source "${PROJECT_ROOT}"/variables/manifest.sh
-source "${PROJECT_ROOT}"/utils/manifest.sh
-source "${PROJECT_ROOT}"/lib/manifest.sh
+# Defina o diretório de instalação visível
+INSTALL_DIR="/opt/whaticket"
+mkdir -p "${INSTALL_DIR}"
+chown "$USER:$USER" "${INSTALL_DIR}"
+chmod 755 "${INSTALL_DIR}"
 
-# user configs file
-if [[ ! -e "${PROJECT_ROOT}"/config ]]; then
-  cat << EOF > "${PROJECT_ROOT}"/config
+# Importações necessárias
+source "${PROJECT_ROOT}/variables/manifest.sh"
+source "${PROJECT_ROOT}/utils/manifest.sh"
+source "${PROJECT_ROOT}/lib/manifest.sh"
+
+# Arquivo de configuração do usuário
+CONFIG_FILE="${INSTALL_DIR}/config"
+if [[ ! -e "${CONFIG_FILE}" ]]; then
+  cat << EOF > "${CONFIG_FILE}"
 deploy_password=${deploy_password}
-mysql_root_password=${mysql_root_password}
-db_pass=${db_pass}
+postgres_user=${postgres_user}
+postgres_password=${postgres_password}
+db_name=${db_name}
 EOF
 fi
 
-# this file has passwords
-sudo su - root <<EOF
-chown root:root "${PROJECT_ROOT}"/config
-chmod 700 "${PROJECT_ROOT}"/config
-EOF
-source "${PROJECT_ROOT}"/config
- 
-# interactive CLI
+# Protege o arquivo de configuração
+sudo chown root:root "${CONFIG_FILE}"
+sudo chmod 600 "${CONFIG_FILE}"
+
+source "${CONFIG_FILE}"
+
+# CLI interativa
 inquiry_options
 
-# dependencies related
+# Atualização de dependências
 system_update
 system_set_timezone
 system_set_ufw
@@ -48,28 +55,34 @@ system_snapd_install
 system_nginx_install
 system_certbot_install
 
-# system config
+# Configuração do sistema
 system_create_user
 system_execute_comand
 
-# backend related
-system_unzip_whaticket
+# Backend
+system_unzip_whaticket "${INSTALL_DIR}"
 backend_chrome_install
 backend_set_env
 backend_redis_create
 backend_node_dependencies
+
+# Instalação do PostgreSQL
+sudo apt update
+sudo apt install -y postgresql postgresql-contrib
+sudo -u postgres createuser --interactive
+sudo -u postgres createdb "${db_name}"
+
+# Migrações e inicializações do banco de dados
 backend_db_migrate
 backend_db_seed
 backend_start_pm2
-backend_nginx_setup
 
-# frontend related
+# Frontend
 frontend_set_env
 frontend_node_dependencies
 frontend_start_pm2
-frontend_nginx_setup
 
-# network related
+# Configuração de rede
 system_nginx_conf
 system_nginx_restart
 system_certbot_setup
