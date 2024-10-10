@@ -1,5 +1,5 @@
 #!/bin/bash
-# 
+
 # Functions for setting up app frontend
 
 #######################################
@@ -32,7 +32,6 @@ frontend_set_env() {
 
   sleep 2
 
-  # Ensure idempotency
   backend_url=$(echo "${backend_url/https:\/\/}")
   backend_url=${backend_url%%/*}
   backend_url=https://$backend_url
@@ -45,7 +44,7 @@ REACT_APP_HOURS_CLOSE_TICKETS_AUTO=9999999
 REACT_APP_FACEBOOK_APP_ID=1005318707427295
 REACT_APP_NAME_SYSTEM=automatizaai
 REACT_APP_VERSION="1.0.0"
-REACT_APP_PRIMARY_COLOR=$#fffff
+REACT_APP_PRIMARY_COLOR=#ffffff
 REACT_APP_PRIMARY_DARK=2c3145
 REACT_APP_NUMBER_SUPPORT=51997059551
 SERVER_PORT=3333
@@ -53,7 +52,6 @@ WDS_SOCKET_PORT=0
 [-]EOF
 EOF
 
-  # Execute the substitution commands
   sudo su - deployautomatizaai <<EOF
   cd /home/deployautomatizaai/whaticket/frontend
 
@@ -64,7 +62,6 @@ EOF
 
   sleep 2
 }
-
 
 #######################################
 # Start pm2 for frontend
@@ -125,30 +122,20 @@ EOF
   sleep 2
 }
 
-
-system_unzip() {
-  print_banner
-  printf "${WHITE} 💻 Fazendo unzip whaticket...${GRAY_LIGHT}\n\n"
-
-  sudo unzip "${PROJECT_ROOT}"/whaticket.zip -d "/root/"
-
-  sleep 2
-}
-
-
+#######################################
+# Move whaticket files
+# Arguments: None
+#######################################
 move_whaticket_files() {
   print_banner
   printf "${WHITE} 💻 Movendo arquivos do WhaTicket...${GRAY_LIGHT}"
   printf "\n\n"
- 
+
   sleep 2
 
   sudo su - root <<EOF
-
-
   sudo mkdir -p /home/deployautomatizaai/whaticket/backup/backend
   sudo mkdir -p /home/deployautomatizaai/whaticket/backup/frontend
-
 
   sudo rm -r /home/deployautomatizaai/whaticket/backup/frontend/automatizaai
   sudo rm -r /home/deployautomatizaai/whaticket/backup/backend/automatizaai
@@ -161,7 +148,6 @@ move_whaticket_files() {
   sudo rm -r /home/deployautomatizaai/whaticket/backend/package.json
   sudo rm -r /home/deployautomatizaai/whaticket/backend/package-lock.json
 
-
   sudo rm -rf /home/deployautomatizaai/whaticket/frontend/node_modules
   sudo rm -rf /home/deployautomatizaai/whaticket/backend/node_modules
 
@@ -172,57 +158,19 @@ move_whaticket_files() {
   sudo mv /root/whaticket/backend/package.json /home/deployautomatizaai/whaticket/backend
   sudo rm -rf /root/whaticket
   npm cache clean --force
-  npm cache clean --force
-  npm cache clean --force
   sudo apt update
   sudo apt install ffmpeg
-
 EOF
   sleep 2
 }
 
-
-frontend_conf1() {
-  print_banner
-  printf "${WHITE} 💻 Configurando variáveis de ambiente (frontend)...${GRAY_LIGHT}"
-  printf "\n\n"
-
-  sleep 2
-
-  # Ensure idempotency
-  backend_url=$(echo "${backend_url/https:\/\/}")
-  backend_url=${backend_url%%/*}
-  backend_url=https://$backend_url
-
-  sudo su - root <<EOF
-  cd /home/deployautomatizaai/whaticket/frontend
-
-  BACKEND_URL=${backend_url}
-
-  sed -i "s|https://autoriza.dominio|\$BACKEND_URL|g" \$(grep -rl 'https://autoriza.dominio' .)
-EOF
-
-  sleep 2
-}
-
-frontend_node_dependencies1() {
-  print_banner
-  printf "${WHITE} 💻 Instalando dependências do frontend...${GRAY_LIGHT}"
-  printf "\n\n"
-
-  sleep 2
-
-  sudo su - deployautomatizaai <<EOF
-  cd /home/deployautomatizaai/whaticket/frontend
-  npm install --force
-EOF
-
-  sleep 2
-}
-
+#######################################
+# Restart pm2 for frontend
+# Arguments: None
+#######################################
 frontend_restart_pm2() {
   print_banner
-  printf "${WHITE} 💻 Iniciando pm2 (frontend)...${GRAY_LIGHT}"
+  printf "${WHITE} 💻 Reiniciando pm2 (frontend)...${GRAY_LIGHT}"
   printf "\n\n"
 
   sleep 2
@@ -230,95 +178,13 @@ frontend_restart_pm2() {
   sudo su - deployautomatizaai <<EOF
   cd /home/deployautomatizaai/whaticket/frontend
   pm2 delete whaticket-frontend
-  pm2 delete waticket-backend
   pm2 start server.js --name whaticket-frontend -i max
-
-  pm2 stop all
-
-  pm2 start all
-
-EOF
-
-  sleep 2
-}  
-
-backend_node_dependencies1() {
-  print_banner
-  printf "${WHITE} 💻 Instalando dependências do backend...${GRAY_LIGHT}"
-  printf "\n\n"
-
-  sleep 2
-
-  sudo su - deployautomatizaai <<EOF
-  cd /home/deployautomatizaai/whaticket/backend 
-
-  npm install --force
- 
   pm2 save
 EOF
 
   sleep 2
 }
 
-backend_db_migrate1() {
-  print_banner
-  printf "${WHITE} 💻 Executando db:migrate...${GRAY_LIGHT}"
-  printf "\n\n"
+# Outras funções podem ser incluídas aqui conforme necessário
 
-  sleep 2
-
-  sudo su - deployautomatizaai <<EOF
-  cd /home/deployautomatizaai/whaticket/backend
-  npx sequelize db:migrate
-
-EOF
-
-  sleep 2
-
-  sudo su - deployautomatizaai <<EOF
-  cd /home/deployautomatizaai/whaticket/backend
-  npx sequelize db:migrate
-  
-EOF
-
-  sleep 2
-}
-
-backend_restart_pm2() {
-  print_banner
-  printf "${WHITE} 💻 Iniciando pm2 (backend)...${GRAY_LIGHT}"
-  printf "\n\n"
-
-  sleep 2
-
-  sudo su - deployautomatizaai <<EOF
-    cd /home/deployautomatizaai/whaticket/backend
-    pm2 stop all
-    sudo rm -rf /root/WhaticketWorkflow
-EOF
-
-  sleep 2
-
-  sudo su - <<EOF
-    usermod -aG sudo deployautomatizaai
-
-    grep -q "^deployautomatizaai ALL=(ALL) NOPASSWD: ALL$" /etc/sudoers || echo "deployautomatizaai ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
-
-    echo "deployautomatizaai ALL=(ALL) NOPASSWD: ALL" | EDITOR='tee -a' visudo
-EOF
-
-  sudo su - deployautomatizaai <<EOF
-
-    pm2 start all
-    pm2 save
-EOF
-  sudo su - <<EOF
-    chown -R deployautomatizaai:deployautomatizaai /home/deployautomatizaai/whaticket/backend
-    chmod -R 777 /home/deployautomatizaai/whaticket/backend
-    chown -R deployautomatizaai:deployautomatizaai /home/deployautomatizaai/whaticket/frontend
-    chmod -R 777 /home/deployautomatizaai/whaticket/frontend
-EOF
-
-  sleep 2
-  echo "${GREEN}Sistema Atualizado Com Sucesso!${NORMAL}"
-}
+echo "${GREEN}Sistema Atualizado Com Sucesso!${NORMAL}"
